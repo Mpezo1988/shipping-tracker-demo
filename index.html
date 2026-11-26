@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+  :root { color-scheme: light; }
+  html, body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>Shipping Tracker (Demo)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root {
+    --ground: #f5f7f6;
+    --surface: #ffffff;
+    --raised: #eef2f1;
+    --ink: #13202a;
+    --muted: #5d6f75;
+    --faint: #849699;
+    --line: #dfe6e4;
+    --line-soft: #ebf0ef;
+    --accent: #0d5c63;
+    --accent-soft: #e2efef;
+    --fedex: #5b2a8c;
+    --fedex-bg: #efe8f8;
+    --ups: #8a5a00;
+    --ups-bg: #f8eed9;
+    --flag: #a3341f;
+    --flag-bg: #fae8e4;
+    --mark: #ffe08a;
+    --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0e1513;
+      --surface: #161f1d;
+      --raised: #1e2927;
+      --ink: #e7eeec;
+      --muted: #9aaeb0;
+      --faint: #74898c;
+      --line: #2a3634;
+      --line-soft: #212c2a;
+      --accent: #5cb8bd;
+      --accent-soft: #17302f;
+      --fedex: #c3a4e8;
+      --fedex-bg: #2a2038;
+      --ups: #e0b86a;
+      --ups-bg: #322715;
+      --flag: #eb9a89;
+      --flag-bg: #35201c;
+      --mark: #6b5310;
+      --on-accent: #08100f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0e1513;
+    --surface: #161f1d;
+    --raised: #1e2927;
+    --ink: #e7eeec;
+    --muted: #9aaeb0;
+    --faint: #74898c;
+    --line: #2a3634;
+    --line-soft: #212c2a;
+    --accent: #5cb8bd;
+    --accent-soft: #17302f;
+    --fedex: #c3a4e8;
+    --fedex-bg: #2a2038;
+    --ups: #e0b86a;
+    --ups-bg: #322715;
+    --flag: #eb9a89;
+    --flag-bg: #35201c;
+    --mark: #6b5310;
+    --on-accent: #08100f;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; padding-block: 20px 48px; }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-bottom: 18px; }
+  h1 {
+    font-size: clamp(20px, 3vw, 26px); font-weight: 700; margin: 0;
+    letter-spacing: -0.015em; text-wrap: balance;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 3px;
+  }
+  .asof { font-size: 12.5px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  /* ---- stat strip ---- */
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  }
+  .stat { background: var(--surface); padding: 11px 14px; }
+  .stat .k { font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint); }
+  .stat .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; margin-top: 1px; }
+  .stat .v small { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+
+  /* ---- controls ---- */
+  .controls {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: var(--ground); padding-block: 10px; margin-bottom: 4px;
+  }
+  .searchrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  #search {
+    flex: 1 1 240px; min-width: 0;
+    padding: 10px 13px; font: inherit; font-size: 15px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 9px; outline: none;
+  }
+  #search::placeholder { color: var(--faint); }
+  #search:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  select {
+    padding: 10px 11px; font: inherit; font-size: 13.5px;
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 9px;
+  }
+  select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .chip {
+    font: inherit; font-size: 12.5px; font-weight: 500;
+    padding: 5px 11px; border-radius: 999px; cursor: pointer;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .chip:hover { color: var(--ink); border-color: var(--faint); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .count { margin-left: auto; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; z-index: 5;
+    text-align: left; padding: 9px 13px; background: var(--raised);
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--faint); border-bottom: 1px solid var(--line);
+    white-space: nowrap; cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--ink); }
+  thead th .arrow { opacity: 0; font-size: 9px; }
+  thead th[data-sorted] .arrow { opacity: 1; color: var(--accent); }
+
+  tr.daygroup th {
+    position: static; text-align: left; padding: 9px 13px;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    cursor: default;
+  }
+  tr.daygroup th .dcount { float: right; font-weight: 500; opacity: 0.8; letter-spacing: 0; text-transform: none; }
+  tr.daygroup.newest th::after {
+    content: "newest"; margin-left: 8px; font-size: 9.5px; letter-spacing: 0.06em;
+    padding: 1px 6px; border-radius: 999px; background: var(--accent); color: var(--on-accent);
+    vertical-align: 1px;
+  }
+
+  tbody td { padding: 9px 13px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:hover td { background: var(--raised); }
+  .cust { font-weight: 600; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .date { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+  .wt { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+  .badge {
+    display: inline-block; padding: 1.5px 7px; border-radius: 4px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .badge.fedex { background: var(--fedex-bg); color: var(--fedex); }
+  .badge.ups { background: var(--ups-bg); color: var(--ups); }
+  .svc { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+  a.trk {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12.5px; font-weight: 500; color: var(--accent);
+    text-decoration: none; white-space: nowrap;
+  }
+  a.trk:hover { text-decoration: underline; }
+  a.trk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .po { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; }
+  .refs { font-size: 12px; color: var(--muted); }
+  .refs b { color: var(--ink); font-weight: 600; }
+  .void { display: inline-block; padding: 1px 6px; border-radius: 4px; background: var(--flag-bg); color: var(--flag); font-size: 10.5px; font-weight: 700; }
+  .dash { color: var(--faint); }
+  mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 2px; }
+
+  .empty { text-align: center; padding: 44px 16px; color: var(--muted); }
+  .empty b { display: block; color: var(--ink); margin-bottom: 4px; }
+  .foot { margin-top: 14px; font-size: 12px; color: var(--faint); }
+
+  @media (max-width: 720px) {
+    .hide-sm { display: none; }
+    .asof { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="masthead">
+    <div>
+      <p class="eyebrow">Outbound Freight · FedEx &amp; UPS</p>
+      <h1>Shipping Tracker (Demo)</h1>
+    </div>
+    <div class="asof" id="asof"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="controls">
+    <div class="searchrow">
+      <input id="search" type="text" placeholder="Search customer, tracking #, PO, item, order #, city…" autocomplete="off" spellcheck="false">
+      <select id="carrierFilter" aria-label="Filter by carrier">
+        <option value="">All carriers</option>
+        <option value="FedEx">FedEx</option>
+        <option value="UPS">UPS</option>
+      </select>
+      <select id="dateFilter" aria-label="Filter by ship date"><option value="">All dates</option></select>
+    </div>
+    <div class="chips">
+      <button class="chip" id="chipLatest" type="button" aria-pressed="false">Latest ship day</button>
+      <button class="chip" id="chip7" type="button" aria-pressed="false">Last 7 ship days</button>
+      <button class="chip" id="chipAll" type="button" aria-pressed="true">All records</button>
+      <span class="count" id="count"></span>
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-k="date">Ship Date <span class="arrow">▼</span></th>
+          <th data-k="customer">Customer <span class="arrow">▼</span></th>
+          <th data-k="carrier">Carrier <span class="arrow">▼</span></th>
+          <th data-k="tracking">Tracking # <span class="arrow">▼</span></th>
+          <th data-k="po" class="hide-sm">PO # <span class="arrow">▼</span></th>
+          <th class="hide-sm">Item / Order Ref</th>
+          <th data-k="weight" class="hide-sm wt">Lbs <span class="arrow">▼</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="foot">Tracking numbers link to live carrier tracking. Click any column header to re-sort. Demo with sample data; the real version is updated daily from the FedEx and UPS shipment reports.</p>
+</div>
+
+<script>
+const DATA = [
+  {date:"2026-11-18", customer:"Redwood Contract Mfg", contact:"Morgan Brooks", city:"Sacramento", state:"CA", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000001", po:"PO-1001", item:"GEL-100X", order:"SO-5001", weight:46, notes:"VOIDED"},
+  {date:"2026-11-18", customer:"Brightwater Botanicals", contact:"", city:"Denver", state:"CO", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000002", po:"PO-1002", item:"GEL-100X", order:"SO-5002", weight:5, notes:"Repeat order"},
+  {date:"2026-11-18", customer:"Redwood Contract Mfg", contact:"Taylor Patel", city:"Sacramento", state:"CA", country:"US", carrier:"FedEx", service:"Standard Overnight", tracking:"DEMO00000003", po:"PO-1003", item:"EXT-410", order:"SO-5003", weight:5, notes:"Repeat order"},
+  {date:"2026-11-17", customer:"Blue Harbor Cosmetics", contact:"Morgan Brooks", city:"Newark", state:"NJ", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000004", po:"", item:"EXT-410", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-17", customer:"Northwind Skincare", contact:"Morgan Brooks", city:"Portland", state:"OR", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000005", po:"PO-1005", item:"EXT-410", order:"SO-5005", weight:12, notes:"Repeat order"},
+  {date:"2026-11-17", customer:"Summit Skin Science", contact:"Alex Rivera", city:"Hamburg", state:"", country:"Germany", carrier:"UPS", service:"Standard", tracking:"1ZDEMO0000000006", po:"PO-1006", item:"OIL-520", order:"SO-5006", weight:5, notes:"Repeat order"},
+  {date:"2026-11-17", customer:"Brightwater Botanicals", contact:"Jordan Chen", city:"Denver", state:"CO", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000007", po:"PO-1007", item:"OIL-520", order:"SO-5007", weight:25, notes:"VOIDED"},
+  {date:"2026-11-16", customer:"Sunfield Labs", contact:"Jordan Chen", city:"Phoenix", state:"AZ", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000008", po:"PO-1008", item:"BTR-300", order:"SO-5008", weight:5, notes:""},
+  {date:"2026-11-16", customer:"Coastal Glow Beauty", contact:"Alex Rivera", city:"Tampa", state:"FL", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000009", po:"PO-1009", item:"GEL-100X", order:"SO-5009", weight:12, notes:""},
+  {date:"2026-11-16", customer:"Northwind Skincare", contact:"Casey Nguyen", city:"Portland", state:"OR", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000010", po:"PO-1010", item:"GEL-100", order:"SO-5010", weight:46, notes:"Pkg 2 of 2"},
+  {date:"2026-11-13", customer:"Sunfield Labs", contact:"", city:"Phoenix", state:"AZ", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000011", po:"PO-1011", item:"PWD-200", order:"SO-5011", weight:5, notes:""},
+  {date:"2026-11-13", customer:"Silverleaf Formulations", contact:"Jordan Chen", city:"Dallas", state:"TX", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000012", po:"", item:"GEL-100", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-13", customer:"Northwind Skincare", contact:"Morgan Brooks", city:"Portland", state:"OR", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000013", po:"PO-1013", item:"BTR-300", order:"SO-5013", weight:46, notes:""},
+  {date:"2026-11-13", customer:"Sunfield Labs", contact:"Jordan Chen", city:"Phoenix", state:"AZ", country:"US", carrier:"FedEx", service:"Standard Overnight", tracking:"DEMO00000014", po:"PO-1014", item:"BTR-300", order:"SO-5014", weight:40, notes:"Pkg 2 of 2"},
+  {date:"2026-11-12", customer:"Northwind Skincare", contact:"Alex Rivera", city:"Portland", state:"OR", country:"US", carrier:"UPS", service:"2nd Day Air", tracking:"1ZDEMO0000000015", po:"", item:"GEL-100X", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-12", customer:"Maple Ridge Naturals", contact:"Alex Rivera", city:"Toronto", state:"ON", country:"Canada", carrier:"UPS", service:"Standard", tracking:"1ZDEMO0000000016", po:"PO-1016", item:"GEL-100X", order:"SO-5016", weight:12, notes:""},
+  {date:"2026-11-11", customer:"Coastal Glow Beauty", contact:"Casey Nguyen", city:"Tampa", state:"FL", country:"US", carrier:"FedEx", service:"Express Saver", tracking:"DEMO00000017", po:"", item:"GEL-100", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-11", customer:"Blue Harbor Cosmetics", contact:"Alex Rivera", city:"Newark", state:"NJ", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000018", po:"", item:"EXT-410", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-11", customer:"Pinecrest Personal Care", contact:"Taylor Patel", city:"Minneapolis", state:"MN", country:"US", carrier:"UPS", service:"2nd Day Air", tracking:"1ZDEMO0000000019", po:"PO-1019", item:"EXT-410", order:"SO-5019", weight:40, notes:"Repeat order"},
+  {date:"2026-11-10", customer:"Maple Ridge Naturals", contact:"Taylor Patel", city:"Toronto", state:"ON", country:"Canada", carrier:"UPS", service:"Standard", tracking:"1ZDEMO0000000020", po:"PO-1020", item:"PWD-200", order:"SO-5020", weight:12, notes:""},
+  {date:"2026-11-10", customer:"Lakeside Wellness Co", contact:"Morgan Brooks", city:"Chicago", state:"IL", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000021", po:"PO-1021", item:"OIL-520", order:"SO-5021", weight:40, notes:""},
+  {date:"2026-11-10", customer:"Brightwater Botanicals", contact:"Jordan Chen", city:"Denver", state:"CO", country:"US", carrier:"FedEx", service:"Standard Overnight", tracking:"DEMO00000022", po:"PO-1022", item:"GEL-100", order:"SO-5022", weight:5, notes:""},
+  {date:"2026-11-10", customer:"Redwood Contract Mfg", contact:"", city:"Sacramento", state:"CA", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000023", po:"PO-1023", item:"BTR-300", order:"SO-5023", weight:46, notes:"Pkg 2 of 2"},
+  {date:"2026-11-09", customer:"Coastal Glow Beauty", contact:"Morgan Brooks", city:"Tampa", state:"FL", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000024", po:"PO-1024", item:"BTR-300", order:"SO-5024", weight:46, notes:""},
+  {date:"2026-11-09", customer:"Summit Skin Science", contact:"Morgan Brooks", city:"Hamburg", state:"", country:"Germany", carrier:"FedEx", service:"International Economy", tracking:"DEMO00000025", po:"", item:"GEL-100X", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-09", customer:"Harbor Point Brands", contact:"Casey Nguyen", city:"Atlanta", state:"GA", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000026", po:"", item:"BTR-300", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-06", customer:"Northwind Skincare", contact:"", city:"Portland", state:"OR", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000027", po:"", item:"EXT-410", order:"", weight:1, notes:"Sample"},
+  {date:"2026-11-06", customer:"Lakeside Wellness Co", contact:"Taylor Patel", city:"Chicago", state:"IL", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000028", po:"PO-1028", item:"BTR-300", order:"SO-5028", weight:25, notes:"Pkg 1 of 2"},
+  {date:"2026-11-05", customer:"Harbor Point Brands", contact:"", city:"Atlanta", state:"GA", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000029", po:"PO-1029", item:"PWD-200", order:"SO-5029", weight:55, notes:""},
+  {date:"2026-11-05", customer:"Coastal Glow Beauty", contact:"", city:"Tampa", state:"FL", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000030", po:"PO-1030", item:"GEL-100", order:"SO-5030", weight:55, notes:""},
+  {date:"2026-11-05", customer:"Coastal Glow Beauty", contact:"Jordan Chen", city:"Tampa", state:"FL", country:"US", carrier:"UPS", service:"Ground", tracking:"1ZDEMO0000000031", po:"PO-1031", item:"BTR-300", order:"SO-5031", weight:46, notes:""},
+  {date:"2026-11-05", customer:"Pinecrest Personal Care", contact:"", city:"Minneapolis", state:"MN", country:"US", carrier:"FedEx", service:"Ground", tracking:"DEMO00000032", po:"PO-1032", item:"GEL-100", order:"SO-5032", weight:55, notes:"Pkg 1 of 2"},
+];
+
+const $ = id => document.getElementById(id);
+const rowsEl = $('rows'), searchEl = $('search'), carrierEl = $('carrierFilter'),
+      dateEl = $('dateFilter'), countEl = $('count');
+
+let sortKey = 'date', sortDir = -1, rangeMode = 'all';
+
+const allDates = [...new Set(DATA.map(s => s.date))].sort().reverse();
+const NEWEST = allDates[0];
+
+function fmtDate(d) { const [y,m,dd] = d.split('-'); return m + '/' + dd + '/' + y.slice(2); }
+function longDate(d) {
+  const [y,m,dd] = d.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, dd));
+  return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', timeZone:'UTC' });
+}
+function trackUrl(s) {
+  return s.carrier === 'UPS'
+    ? 'https://www.ups.com/track?tracknum=' + encodeURIComponent(s.tracking)
+    : 'https://www.fedex.com/fedextrack/?trknbr=' + encodeURIComponent(s.tracking);
+}
+function esc(t) {
+  return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function hi(text, q) {
+  const t = esc(text);
+  if (!q) return t;
+  const i = String(text).toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return t;
+  const s = String(text);
+  return esc(s.slice(0,i)) + '<mark>' + esc(s.slice(i, i+q.length)) + '</mark>' + esc(s.slice(i+q.length));
+}
+
+/* ---------- stat strip ---------- */
+function buildStats() {
+  const newestCount = DATA.filter(s => s.date === NEWEST).length;
+  const thisMonth = NEWEST.slice(0,7);
+  const monthCount = DATA.filter(s => s.date.startsWith(thisMonth)).length;
+  const monthDays = new Set(DATA.filter(s => s.date.startsWith(thisMonth)).map(s => s.date)).size;
+  const monthName = new Date(Date.UTC(+thisMonth.slice(0,4), +thisMonth.slice(5,7)-1, 1))
+    .toLocaleDateString('en-US', { month:'long', timeZone:'UTC' });
+  const pace = (monthCount / monthDays).toFixed(1);
+
+  $('stats').innerHTML = [
+    ['Latest ship day', fmtDate(NEWEST), newestCount + ' shipment' + (newestCount===1?'':'s')],
+    [monthName + ' to date', String(monthCount), 'across ' + monthDays + ' ship days'],
+    [monthName + ' pace', pace, 'shipments / ship day'],
+    ['All records', String(DATA.length), fmtDate(allDates[allDates.length-1]) + ' → ' + fmtDate(NEWEST)]
+  ].map(([k,v,note]) =>
+    '<div class="stat"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) +
+    '</div><div class="sub">' + esc(note) + '</div></div>'
+  ).join('');
+
+  $('asof').textContent = 'Latest report: ' + longDate(NEWEST) + ', ' + NEWEST.slice(0,4);
+}
+
+function populateDates() {
+  allDates.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = fmtDate(d);
+    dateEl.appendChild(o);
+  });
+}
+
+/* ---------- render ---------- */
+function render() {
+  const q = searchEl.value.trim(), ql = q.toLowerCase();
+  const cf = carrierEl.value, df = dateEl.value;
+
+  let allowed = null;
+  if (!df) {
+    if (rangeMode === 'latest') allowed = new Set([NEWEST]);
+    else if (rangeMode === 'week') allowed = new Set(allDates.slice(0, 7));
+  }
+
+  let list = DATA.filter(s => {
+    if (cf && s.carrier !== cf) return false;
+    if (df && s.date !== df) return false;
+    if (allowed && !allowed.has(s.date)) return false;
+    if (!ql) return true;
+    return [s.customer, s.contact, s.tracking, s.po, s.item, s.order, s.city, s.state,
+            s.country, s.notes, s.service, s.carrier, s.date, fmtDate(s.date)]
+      .some(v => String(v).toLowerCase().includes(ql));
+  });
+
+  list.sort((a,b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    if (sortKey === 'weight') return (va - vb) * sortDir;
+    const r = String(va).localeCompare(String(vb)) * sortDir;
+    if (r !== 0) return r;
+    return String(a.customer).localeCompare(String(b.customer));
+  });
+
+  countEl.textContent = list.length === DATA.length
+    ? DATA.length + ' shipments'
+    : list.length.toLocaleString() + ' of ' + DATA.length.toLocaleString() + ' shipments';
+
+  if (!list.length) {
+    rowsEl.innerHTML = '<tr><td colspan="7" class="empty"><b>No shipments match.</b>' +
+      'Try a partial customer name, a tracking number, or clear the filters.</td></tr>';
+    return;
+  }
+
+  const groupByDate = (sortKey === 'date');
+  let html = '', lastDate = null;
+
+  for (const s of list) {
+    if (groupByDate && s.date !== lastDate) {
+      lastDate = s.date;
+      const n = list.filter(x => x.date === s.date).length;
+      html += '<tr class="daygroup' + (s.date === NEWEST ? ' newest' : '') + '"><th colspan="7">' +
+              longDate(s.date) + ' · ' + fmtDate(s.date) +
+              '<span class="dcount">' + n + ' shipment' + (n===1?'':'s') + '</span></th></tr>';
+    }
+
+    const dest = [s.city, s.state || s.country].filter(Boolean).join(', ');
+    const voided = /VOIDED/i.test(s.notes || '');
+    const noteHtml = voided
+      ? '<span class="void">Voided</span>'
+      : (s.notes ? esc(s.notes) : '');
+    const refs = [
+      s.item ? 'Item <b>' + hi(s.item, q) + '</b>' : '',
+      s.order ? 'Order <b>' + hi(s.order, q) + '</b>' : '',
+      noteHtml
+    ].filter(Boolean).join(' · ');
+
+    html += '<tr>' +
+      '<td class="date">' + fmtDate(s.date) + '</td>' +
+      '<td><div class="cust">' + hi(s.customer, q) + '</div>' +
+        (s.contact ? '<div class="sub">' + hi(s.contact, q) + '</div>' : '') +
+        '<div class="sub">' + hi(dest, q) + '</div></td>' +
+      '<td><span class="badge ' + s.carrier.toLowerCase() + '">' + s.carrier + '</span>' +
+        '<div class="svc">' + esc(s.service) + '</div></td>' +
+      '<td><a class="trk" target="_blank" rel="noopener" href="' + trackUrl(s) + '">' +
+        hi(s.tracking, q) + '</a></td>' +
+      '<td class="hide-sm po">' + (s.po ? hi(s.po, q) : '<span class="dash">—</span>') + '</td>' +
+      '<td class="hide-sm refs">' + (refs || '<span class="dash">—</span>') + '</td>' +
+      '<td class="hide-sm wt">' + s.weight + '</td>' +
+      '</tr>';
+  }
+  rowsEl.innerHTML = html;
+}
+
+/* ---------- controls ---------- */
+function setRange(mode) {
+  rangeMode = mode;
+  dateEl.value = '';
+  $('chipLatest').setAttribute('aria-pressed', String(mode === 'latest'));
+  $('chip7').setAttribute('aria-pressed', String(mode === 'week'));
+  $('chipAll').setAttribute('aria-pressed', String(mode === 'all'));
+  render();
+}
+$('chipLatest').addEventListener('click', () => setRange('latest'));
+$('chip7').addEventListener('click', () => setRange('week'));
+$('chipAll').addEventListener('click', () => setRange('all'));
+
+document.querySelectorAll('thead th[data-k]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir *= -1;
+    else { sortKey = k; sortDir = (k === 'date' || k === 'weight') ? -1 : 1; }
+    document.querySelectorAll('thead th[data-k]').forEach(o => o.removeAttribute('data-sorted'));
+    th.setAttribute('data-sorted', sortDir > 0 ? 'asc' : 'desc');
+    th.querySelector('.arrow').textContent = sortDir > 0 ? '▲' : '▼';
+    render();
+  });
+});
+searchEl.addEventListener('input', render);
+carrierEl.addEventListener('change', render);
+dateEl.addEventListener('change', () => {
+  if (dateEl.value) {
+    rangeMode = 'all';
+    ['chipLatest','chip7','chipAll'].forEach(id => $(id).setAttribute('aria-pressed','false'));
+  }
+  render();
+});
+
+buildStats();
+populateDates();
+document.querySelector('thead th[data-k="date"]').setAttribute('data-sorted','desc');
+render();
+</script>
+
+</body>
+</html>
